@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.moddar_game.twa",
+      "sha256_cert_fingerprints": [
+        "FE:9B:9B:72:7F:8F:15:1C:6C:6A:8D:6C:8E:84:AD:C9:28:CE:05:8D:7B:95:5C:B7:C1:6E:A7:D1:E6:7E:11:AD"
+      ]
+    }
+  }
+]
