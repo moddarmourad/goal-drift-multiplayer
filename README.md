@@ -18,7 +18,7 @@ The host relays room inputs and game snapshots through the Node.js server. Publi
 
 ## Deploy the online game with Render
 
-The included `render.yaml` deploys the complete game and its WebSocket server as one Render web service. Publish this project to a Git provider such as GitHub, create a Render Blueprint from that repository, and apply the `goal-drift-multiplayer` service. Render will run `npm ci`, start the app with `npm start`, and check `/health`. Use the HTTPS URL Render assigns to the service for both playing and sharing room invites; the existing static-only Vercel deployment does not provide the `/multiplayer` WebSocket endpoint.
+The included `render.yaml` deploys the complete game and its WebSocket server as one Render web service. Publish this project to a Git provider such as GitHub, create a Render Blueprint from that repository, and apply the `goal-drift-multiplayer` service. Render will run `npm ci`, start the app with `npm start`, and check `/health`. Use the HTTPS URL Render assigns to the service for playing and sharing room invites. The Vercel frontend can also use this Render WebSocket backend after redeploying this version of `index.html`.
 
 Keep this service to one instance: room codes and matchmaking queues are held in memory and are not shared across instances. On Render's free plan, the service may spin down after inactivity, so the first connection after a quiet period can take a little longer.
 

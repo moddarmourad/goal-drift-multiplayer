@@ -2114,7 +2114,10 @@ function connectRoom(action, code) {
   }
   online.connecting = true;
   lobbyStatus('Connecting to the game server…');
-  const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/multiplayer';
+  const isLocalHost = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const isMultiplayerHost = location.hostname.endsWith('.onrender.com');
+  const wsHost = isLocalHost || isMultiplayerHost ? location.host : 'goal-drift-multiplayer.onrender.com';
+  const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + wsHost + '/multiplayer';
   const socket = new WebSocket(wsUrl);
   online.socket = socket;
   socket.addEventListener('open', () => {
