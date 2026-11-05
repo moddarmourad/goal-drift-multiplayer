@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const http = require('node:http');
 const path = require('node:path');
-  const message = `GD-${skin.id}-${orderRef.replace(/-/g, '').slice(0, 8)}`;
+const express = require('express');
 const { WebSocketServer, WebSocket } = require('ws');
 const skinCatalog = require('./skins');
 
@@ -48,7 +48,7 @@ app.post('/api/skins/checkout', async (req, res) => {
 
   const origin = allowedOrigins.has(req.get('origin')) ? req.get('origin') : 'https://moddar-game.vercel.app';
   const orderRef = crypto.randomUUID();
-  const message = `Goal Drift skin ${skin.id} · ${orderRef}`;
+  const message = `GD-${skin.id}-${orderRef.replace(/-/g, '').slice(0, 8)}`;
   const successUrl = `${origin}/?payment=success&skin_id=${encodeURIComponent(skin.id)}&order_ref=${encodeURIComponent(orderRef)}&payment_intent_id={PAYMENT_INTENT_ID}`;
   try {
     const response = await fetch('https://api-v2.ziina.com/api/payment_intent', {
