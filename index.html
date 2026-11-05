@@ -95,7 +95,7 @@ kbd{font-family:var(--font-ui);font-weight:700;font-size:13px;padding:1px 6px;bo
 .profile-grid input[type="color"]{width:100%;height:44px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raise)}
 .skin-shop{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:340px;overflow:auto;padding:2px}
 .skin-card{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--panel-raise)}
-.skin-swatch{width:42px;height:42px;border-radius:8px;border:1px solid #ffffff44;box-shadow:inset 0 0 12px #0005}
+.skin-swatch{width:42px;height:42px;border-radius:8px;border:1px solid #ffffff66;box-shadow:inset 0 0 12px #0005;display:grid;place-items:center;font-size:23px;text-shadow:0 1px 5px #000}
 .skin-card-copy{min-width:0}.skin-card-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800}
 .skin-card-price{display:block;color:var(--muted);font-size:12px;margin-top:2px}
 .skin-card button{grid-column:1/-1;width:100%;min-height:34px;padding:5px;border:1px solid var(--line);border-radius:7px;background:var(--ink);color:var(--chalk);font:700 12px var(--font-ui);cursor:pointer}
@@ -294,6 +294,9 @@ tr.me td{color:var(--charge)}
         <option value="ice">Glacier Dome</option>
         <option value="forest">Wildwood Bowl</option>
         <option value="lunar">Lunar Station</option>
+        <option value="tokyo">Tokyo Night Circuit</option>
+        <option value="paris">Paris Lights</option>
+        <option value="dubai">Dubai Skyline</option>
       </select>
     </label>
     <details class="howto" id="garage">
@@ -304,8 +307,8 @@ tr.me td{color:var(--charge)}
         <label class="field"><span class="label">Body paint</span><input id="carPaint" type="color" value="#ffd23f"></label>
         <label class="field"><span class="label">Accent color</span><input id="carAccent" type="color" value="#9b6cff"></label>
       </div>
-      <p class="fine">50 themed skins · AED 2 or AED 3 each. Payments open Ziina checkout. Purchased skins are saved in this browser.</p>
-      <label class="field" for="skinSearch"><span class="label">Find a skin</span><input class="shop-search" id="skinSearch" type="search" placeholder="Search 50 skins"></label>
+      <p class="fine">195 country flag liveries · AED 8 each, plus 50 original skins from AED 2. Checkout opens Ziina. Purchases are saved in this browser.</p>
+      <label class="field" for="skinSearch"><span class="label">Find a skin</span><input class="shop-search" id="skinSearch" type="search" placeholder="Search 245 skins"></label>
       <p class="shop-status" id="shopStatus" aria-live="polite">Free racing, twin-stripe, and solid styles are always available.</p>
       <div class="skin-shop" id="skinShop" aria-label="Paid car skins"></div>
     </details>
@@ -462,6 +465,9 @@ const STADIUMS = {
   ice: { name: 'Glacier Dome', skyTop: 0x081a35, skyHorizon: 0x287a9d, skyGlow: 0x82edff, fog: 0x12354b, ground: 0x0c2433, surface: 0x142f40, arena: 0x49ceef, glow: 0x91f5ff, hemi: 0xb8edff, ambient: 0x31576a, sun: 0xd2f5ff },
   forest: { name: 'Wildwood Bowl', skyTop: 0x071c1c, skyHorizon: 0x2a6952, skyGlow: 0xa2e86e, fog: 0x15382d, ground: 0x10251c, surface: 0x1d3024, arena: 0x74d66a, glow: 0xc3ef72, hemi: 0xc4efc2, ambient: 0x354f38, sun: 0xffefb4 },
   lunar: { name: 'Lunar Station', skyTop: 0x030615, skyHorizon: 0x172b5a, skyGlow: 0x527aff, fog: 0x0a1230, ground: 0x080d1b, surface: 0x11192b, arena: 0x5577ff, glow: 0x64dfff, hemi: 0xaab8ff, ambient: 0x29354e, sun: 0xd1e4ff },
+  tokyo: { name: 'Tokyo Night Circuit', skyTop: 0x080a24, skyHorizon: 0x57265e, skyGlow: 0xff4b87, fog: 0x17142d, ground: 0x101324, surface: 0x171c32, arena: 0xf13e88, glow: 0x4fe9ff, hemi: 0xc3b8ff, ambient: 0x3c3158, sun: 0xffb5c8 },
+  paris: { name: 'Paris Lights', skyTop: 0x111c3b, skyHorizon: 0x50659a, skyGlow: 0xffd98c, fog: 0x25314b, ground: 0x171d2b, surface: 0x252b39, arena: 0xe7bd66, glow: 0xa8d7ff, hemi: 0xd4e1ff, ambient: 0x48536a, sun: 0xffe6bd },
+  dubai: { name: 'Dubai Skyline', skyTop: 0x101c3d, skyHorizon: 0xb46a54, skyGlow: 0xffd477, fog: 0x354158, ground: 0x202533, surface: 0x292f3e, arena: 0x19b9b1, glow: 0xffd477, hemi: 0xf2d6c0, ambient: 0x596071, sun: 0xffd6a0 },
 };
 const settings = { teamSize: 2, diff: 1, minutes: 3, stadium: 'neon', ballCam: true, assist: true, sound: true };
 try {
@@ -488,7 +494,10 @@ function shopApiBase() {
     ? location.origin : 'https://goal-drift-multiplayer.onrender.com';
 }
 function skinTickets() { return Object.fromEntries(Object.entries(profile.ownedSkins).filter(([id, ticket]) => paidSkinIds.has(id) && typeof ticket === 'string')); }
-function networkProfile() { return { name: profile.name, paint: profile.paint, accent: profile.accent, skin: profile.skin, skinTickets: skinTickets() }; }
+function networkProfile() {
+  const ticket = profile.ownedSkins[profile.skin];
+  return { name: profile.name, paint: profile.paint, accent: profile.accent, skin: profile.skin, skinTickets: ticket ? { [profile.skin]: ticket } : {} };
+}
 const online = { socket: null, role: '', room: '', peerReady: false, started: false, localTeam: 0, localSlot: 0, players: [], remoteInputs: Object.create(null), inputTimer: 0, snapshotTimer: 0, queueing: false };
 function isOnlineMatch() { return !!online.room && online.started; }
 
@@ -871,6 +880,121 @@ function buildSurroundings() {
     const station = new THREE.Mesh(new THREE.BoxGeometry(16, 12, 24), new THREE.MeshStandardMaterial({ color: 0x344764, metalness: 0.65, roughness: 0.35 }));
     station.position.set(x * 1.05, 32, 0); lunar.add(station);
   }
+
+  const addCityBlock = (group, angle, radius, width, depth, height, color, windows = winTex) => {
+    const material = new THREE.MeshBasicMaterial({ map: windows, color });
+    const block = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
+    block.position.set(Math.sin(angle) * radius, height / 2 - 1, Math.cos(angle) * radius);
+    block.rotation.y = -angle;
+    group.add(block);
+    return block;
+  };
+  const addBeam = (group, start, end, width, material) => {
+    const delta = end.clone().sub(start);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(width, delta.length(), width), material);
+    beam.position.copy(start).add(end).multiplyScalar(0.5);
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
+    group.add(beam);
+    return beam;
+  };
+
+  const tokyo = addSet('tokyo');
+  const tokyoWindows = canvasTexture(128, 128, (g) => {
+    g.fillStyle = '#11132a'; g.fillRect(0, 0, 128, 128);
+    for (let y = 5; y < 124; y += 9) for (let x = 5; x < 124; x += 8) {
+      const r = Math.random();
+      if (r < 0.48) { g.fillStyle = r < 0.12 ? '#ff4b87' : r < 0.27 ? '#54e8ff' : '#ffd477'; g.fillRect(x, y, 4, 5); }
+    }
+  });
+  tokyoWindows.wrapS = tokyoWindows.wrapT = THREE.RepeatWrapping;
+  for (let i = 0; i < 38; i++) {
+    const a = i / 38 * Math.PI * 2, h = 42 + (i * 37 % 98);
+    addCityBlock(tokyo, a, 205 + (i % 5) * 22, 14 + (i % 4) * 5, 16 + (i % 3) * 5, h, i % 3 ? 0xaaaaff : 0xffffff, tokyoWindows);
+  }
+  const tokyoTowerMat = new THREE.MeshStandardMaterial({ color: 0xd74654, roughness: 0.6, emissive: 0x3e1019, emissiveIntensity: 0.18 });
+  const tokyoTowerWhite = new THREE.MeshStandardMaterial({ color: 0xf3e7d2, roughness: 0.55 });
+  const tokyoTowerX = -38, tokyoTowerZ = -188;
+  for (let i = 0; i < 8; i++) {
+    const y = i * 14, radius = 11 - i * 0.95;
+    const section = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(1.2, radius - 1.2), radius, 14, 8), i % 2 ? tokyoTowerMat : tokyoTowerWhite);
+    section.position.set(tokyoTowerX, y + 7, tokyoTowerZ); tokyo.add(section);
+  }
+  const tokyoA = new THREE.Vector3(tokyoTowerX, 0, tokyoTowerZ), tokyoB = new THREE.Vector3(tokyoTowerX, 110, tokyoTowerZ);
+  addBeam(tokyo, tokyoA.clone().add(new THREE.Vector3(-15, 0, 0)), tokyoB.clone(), 1.8, tokyoTowerMat);
+  addBeam(tokyo, tokyoA.clone().add(new THREE.Vector3(15, 0, 0)), tokyoB.clone(), 1.8, tokyoTowerMat);
+  for (const y of [26, 48, 70, 91]) {
+    const half = 13 - y * 0.09;
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(half, half, 2, 8), tokyoTowerWhite);
+    deck.position.set(tokyoTowerX, y, tokyoTowerZ); tokyo.add(deck);
+  }
+  const pagodaMat = new THREE.MeshStandardMaterial({ color: 0x28213e, roughness: 0.8 });
+  for (let tier = 0; tier < 4; tier++) {
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(19 - tier * 3, 7, 4), pagodaMat);
+    roof.position.set(45, 28 + tier * 14, -204); roof.rotation.y = Math.PI / 4; tokyo.add(roof);
+  }
+
+  const paris = addSet('paris');
+  const parisWindows = canvasTexture(128, 128, (g) => {
+    g.fillStyle = '#37364a'; g.fillRect(0, 0, 128, 128);
+    for (let y = 7; y < 124; y += 12) for (let x = 7; x < 124; x += 11) {
+      if (Math.random() < 0.48) { g.fillStyle = Math.random() < 0.4 ? '#ffd98c' : '#abc9ee'; g.fillRect(x, y, 5, 7); }
+    }
+  });
+  parisWindows.wrapS = parisWindows.wrapT = THREE.RepeatWrapping;
+  for (let i = 0; i < 34; i++) {
+    const a = i / 34 * Math.PI * 2, h = 30 + (i * 23 % 58);
+    addCityBlock(paris, a, 218 + (i % 4) * 18, 19 + (i % 3) * 6, 20, h, i % 2 ? 0xffe6c6 : 0xffffff, parisWindows);
+  }
+  const iron = new THREE.MeshStandardMaterial({ color: 0x594637, metalness: 0.62, roughness: 0.38, emissive: 0x25170d, emissiveIntensity: 0.12 });
+  const towerZ = -188;
+  const towerBaseL = new THREE.Vector3(-20, 0, towerZ), towerBaseR = new THREE.Vector3(20, 0, towerZ);
+  const towerMidL = new THREE.Vector3(-8, 51, towerZ), towerMidR = new THREE.Vector3(8, 51, towerZ);
+  const towerTopL = new THREE.Vector3(-3, 91, towerZ), towerTopR = new THREE.Vector3(3, 91, towerZ);
+  const towerPeak = new THREE.Vector3(0, 126, towerZ);
+  addBeam(paris, towerBaseL, towerMidL, 3.2, iron); addBeam(paris, towerBaseR, towerMidR, 3.2, iron);
+  addBeam(paris, towerMidL, towerTopL, 2.2, iron); addBeam(paris, towerMidR, towerTopR, 2.2, iron);
+  addBeam(paris, towerTopL, towerPeak, 1.4, iron); addBeam(paris, towerTopR, towerPeak, 1.4, iron);
+  for (const [y, half] of [[22, 15], [52, 8], [92, 3]]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(half * 2, 2.4, 2.4), iron);
+    rail.position.set(0, y, towerZ); paris.add(rail);
+  }
+  for (let y = 10; y < 78; y += 12) {
+    const t = y / 126, half = 20 * (1 - t) + 1;
+    addBeam(paris, new THREE.Vector3(-half, y, towerZ), new THREE.Vector3(half, y + 5, towerZ), 1.1, iron);
+    addBeam(paris, new THREE.Vector3(half, y, towerZ), new THREE.Vector3(-half, y + 5, towerZ), 1.1, iron);
+  }
+  const archStone = new THREE.MeshStandardMaterial({ color: 0xd7c49f, roughness: 0.86 });
+  for (const x of [70, 82]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(7, 25, 8), archStone);
+    pillar.position.set(x, 12, -196); paris.add(pillar);
+  }
+  const archTop = new THREE.Mesh(new THREE.BoxGeometry(28, 8, 9), archStone);
+  archTop.position.set(76, 25, -196); paris.add(archTop);
+
+  const dubai = addSet('dubai');
+  const dubaiWindows = canvasTexture(128, 128, (g) => {
+    g.fillStyle = '#18243a'; g.fillRect(0, 0, 128, 128);
+    for (let y = 3; y < 126; y += 8) for (let x = 5; x < 124; x += 9) {
+      if (Math.random() < 0.56) { g.fillStyle = Math.random() < 0.42 ? '#ffd477' : '#65d9dc'; g.fillRect(x, y, 5, 4); }
+    }
+  });
+  dubaiWindows.wrapS = dubaiWindows.wrapT = THREE.RepeatWrapping;
+  for (let i = 0; i < 32; i++) {
+    const a = i / 32 * Math.PI * 2, h = 48 + (i * 29 % 106);
+    addCityBlock(dubai, a, 226 + (i % 4) * 20, 18 + (i % 3) * 6, 20, h, 0xffffff, dubaiWindows);
+  }
+  const glassGold = new THREE.MeshStandardMaterial({ color: 0x9db7c2, metalness: 0.72, roughness: 0.24, emissive: 0x24414a, emissiveIntensity: 0.24 });
+  for (let tier = 0; tier < 18; tier++) {
+    const width = 25 - tier * 1.2, height = tier < 11 ? 10 : 6;
+    const level = new THREE.Mesh(new THREE.BoxGeometry(width, height, width * 0.72), glassGold);
+    level.position.set(0, tier * height + height / 2, -198 - tier * 0.45); dubai.add(level);
+  }
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(1.5, 48, 8), glassGold);
+  spire.position.set(0, 18 * 10 + 22, -206); dubai.add(spire);
+  const sail = new THREE.Shape();
+  sail.moveTo(0, 0); sail.quadraticCurveTo(8, 34, 3, 78); sail.quadraticCurveTo(27, 38, 17, 0); sail.lineTo(0, 0);
+  const sailMesh = new THREE.Mesh(new THREE.ShapeGeometry(sail), new THREE.MeshStandardMaterial({ color: 0xe7eee9, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.28, emissive: 0x243b43, emissiveIntensity: 0.2 }));
+  sailMesh.position.set(90, 0, -184); dubai.add(sailMesh);
 }
 
 function applyStadium(key) {
@@ -989,6 +1113,7 @@ function buildCarParts() {
   G.stripe = new THREE.BoxGeometry(0.04, 0.09, 2.3);
   G.skinStripe = new THREE.BoxGeometry(0.4, 0.07, 1.75);
   G.skinTwin = new THREE.BoxGeometry(0.15, 0.06, 1.65);
+  G.flagBadge = new THREE.PlaneGeometry(1.05, 0.66).rotateX(-Math.PI / 2);
   G.strut = new THREE.BoxGeometry(0.08, 0.5, 0.28);
   G.wing = new THREE.BoxGeometry(2.5, 0.08, 0.6);
   G.bumper = new THREE.BoxGeometry(2.1, 0.16, 0.24);
@@ -1023,6 +1148,21 @@ function makeLabel(text, team) {
   s.scale.set(5.2, 1.3, 1); s.renderOrder = 6;
   return s;
 }
+function makeFlagTexture(skin) {
+  if (!skin || !skin.flag || !Array.isArray(skin.flagColors)) return null;
+  return canvasTexture(128, 80, (g) => {
+    g.fillStyle = '#111827'; g.fillRect(0, 0, 128, 80);
+    skin.flagColors.forEach((color, index) => {
+      g.fillStyle = color;
+      g.fillRect(index * 128 / 3, 0, 128 / 3 + 1, 80);
+    });
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(0, 0, 128, 80);
+    g.font = '58px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(skin.flag, 64, 42);
+    g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 3; g.strokeRect(2, 2, 124, 76);
+  });
+}
 function buildCarView(c) {
   const t = TEAMS[c.team];
   const style = c.style || { paint: '#' + t.color.getHexString(), accent: '#' + t.color.getHexString(), skin: 'solid' };
@@ -1046,6 +1186,9 @@ function buildCarView(c) {
     add(G.skinTwin, trimMaterial, 0.82, 0.32, 0.05, false),
   ];
   setSkinPattern(patternMeshes, skinDefinition(style.skin)?.pattern || style.skin);
+  const flagMaterial = new THREE.MeshBasicMaterial({ map: makeFlagTexture(skinDefinition(style.skin)), transparent: true, side: THREE.DoubleSide, depthWrite: false });
+  const flagBadge = add(G.flagBadge, flagMaterial, 0, 0.39, 0.78, false);
+  flagBadge.visible = !!flagMaterial.map;
   const flames = [];
   for (const sx of [-1, 1]) {
     add(G.pod, M.dark, sx * 1.16, -0.2, -0.15, true);
@@ -1071,12 +1214,15 @@ function buildCarView(c) {
   scene.add(root);
   let label = null;
   if (!c.isPlayer) { label = makeLabel(c.name, c.team); scene.add(label); }
-  return { root, body, wheels, flames, glow, label, paintMaterial, trimMaterial, rimMaterial, flameMaterial, glowMaterial, patternMeshes };
+  return { root, body, wheels, flames, glow, label, paintMaterial, trimMaterial, rimMaterial, flameMaterial, glowMaterial, patternMeshes, flagMaterial, flagBadge };
 }
 function disposeCarView(c) {
   scene.remove(c.view.root);
   if (c.view.label) { scene.remove(c.view.label); c.view.label.material.map.dispose(); c.view.label.material.dispose(); }
-  for (const mat of [c.view.paintMaterial, c.view.trimMaterial, c.view.rimMaterial, c.view.flameMaterial, c.view.glowMaterial]) mat.dispose();
+  for (const mat of [c.view.paintMaterial, c.view.trimMaterial, c.view.rimMaterial, c.view.flameMaterial, c.view.glowMaterial, c.view.flagMaterial]) {
+    if (mat.map) mat.map.dispose();
+    mat.dispose();
+  }
 }
 
 class Car {
@@ -1126,6 +1272,11 @@ function applyCarStyle(c, style) {
   c.view.flameMaterial.color.set(next.accent).lerp(new THREE.Color(0xffffff), 0.45);
   c.view.glowMaterial.color.set(next.accent);
   setSkinPattern(c.view.patternMeshes, skinDefinition(next.skin)?.pattern || next.skin);
+  const flagTexture = makeFlagTexture(skinDefinition(next.skin));
+  if (c.view.flagMaterial.map) c.view.flagMaterial.map.dispose();
+  c.view.flagMaterial.map = flagTexture;
+  c.view.flagMaterial.needsUpdate = true;
+  c.view.flagBadge.visible = !!flagTexture;
 }
 function setSkinPattern(meshes, pattern) {
   const visible = pattern === 'racing' ? [0] : pattern === 'twin' ? [1, 2] : pattern === 'rally' ? [0, 1, 2] : pattern === 'side' ? [3, 4] : [];
@@ -2680,12 +2831,15 @@ function renderSkinShop(search = '') {
     const swatch = document.createElement('span');
     swatch.className = 'skin-swatch';
     swatch.setAttribute('aria-hidden', 'true');
-    swatch.style.background = `linear-gradient(135deg, ${skin.paint} 0 42%, ${skin.accent} 43% 58%, ${skin.paint} 59%)`;
+    swatch.style.background = skin.flagColors
+      ? `linear-gradient(90deg, ${skin.flagColors[0]} 0 33%, ${skin.flagColors[1]} 33% 66%, ${skin.flagColors[2]} 66%)`
+      : `linear-gradient(135deg, ${skin.paint} 0 42%, ${skin.accent} 43% 58%, ${skin.paint} 59%)`;
+    if (skin.flag) swatch.textContent = skin.flag;
     const copy = document.createElement('div');
     copy.className = 'skin-card-copy';
     const name = document.createElement('span');
     name.className = 'skin-card-name';
-    name.textContent = skin.name;
+    name.textContent = skin.flag ? `${skin.flag} ${skin.name}` : skin.name;
     const price = document.createElement('span');
     price.className = 'skin-card-price';
     price.textContent = `AED ${skin.price}`;

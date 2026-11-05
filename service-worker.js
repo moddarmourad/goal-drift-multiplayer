@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'goal-drift-shell-v4';
+const CACHE = 'goal-drift-shell-v5';
 const SHELL = ['./', './manifest.webmanifest', './icon.svg', './skins.js', './icons/icon-192.png', './icons/icon-512.png'];
 const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 

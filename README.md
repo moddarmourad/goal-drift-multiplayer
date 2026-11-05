@@ -1,6 +1,6 @@
 # Goal Drift
 
-Goal Drift is a browser-playable car-soccer game with touch controls, an installable mobile web app shell, local garage customization, five selectable stadiums, public matchmaking, and private rooms for up to four players.
+Goal Drift is a browser-playable car-soccer game with touch controls, an installable mobile web app shell, local garage customization, eight selectable stadiums, public matchmaking, and private rooms for up to four players.
 
 ## Run locally
 
@@ -9,7 +9,7 @@ Install Node.js 18 or newer, install the project dependencies, then start the se
 ## Online play
 
 1. Host the game on a public HTTPS-capable Node.js service and set its `PORT` environment variable if required by the host.
-2. Select a stadium from Neon City, Sunset Ruins, Glacier Dome, Wildwood Bowl, or Lunar Station. The room host’s selection is shared with everyone in that match.
+2. Select from Neon City, Sunset Ruins, Glacier Dome, Wildwood Bowl, Lunar Station, Tokyo Night Circuit, Paris Lights, or Dubai Skyline. The room host’s selection is shared with everyone in that match.
 3. Choose **Quick play · find anyone** to get matched with another player without inviting them.
 4. Or select **Create room · up to 4** and share the invite link or six-character code. A room supports you plus up to three friends; the host starts once at least one other player has joined.
 5. Two players play 1v1; three or four players use 2v2 teams. Empty seats in a partially-filled private room are filled by bots. Offline play remains available.
@@ -18,13 +18,13 @@ The host relays room inputs and game snapshots through the Node.js server. Publi
 
 ## Ziina skin shop
 
-The garage includes 50 cosmetic skins priced at AED 2 or AED 3. Ziina requires a minimum payment of AED 2. Checkout is created and verified by the Node.js server; never put the Ziina access token in browser code. To activate payments, create a Ziina custom-integration access token with payment-intent permissions, then add `ZIINA_ACCESS_TOKEN` and a long random `SKIN_TOKEN_SECRET` to the Render web service's environment. Set `ZIINA_TEST_MODE=true` only while testing with Ziina's test flow, then remove/disable it for live payments. Redeploy after setting environment variables.
+The garage includes 50 original cosmetic skins priced at AED 2 or AED 3, plus flag liveries for 195 countries at AED 8 each. Ziina requires a minimum payment of AED 2. Checkout is created and verified by the Node.js server; never put the Ziina access token in browser code. To activate payments, create a Ziina custom-integration access token with payment-intent permissions, then add `ZIINA_ACCESS_TOKEN` and a long random `SKIN_TOKEN_SECRET` to the Render web service's environment. Set `ZIINA_TEST_MODE=true` only while testing with Ziina's test flow, then remove/disable it for live payments. Redeploy after setting environment variables.
 
 After a completed payment, the server verifies the payment intent, exact AED amount, and skin/order reference with Ziina before issuing a signed unlock ticket. Browser tickets are stored locally on that device; this game currently has no player accounts or cross-device purchase restore. Ziina merchant activation, fees, tax treatment, refund rules, and legal disclosures must be configured/confirmed with Ziina by the merchant before accepting live payments.
 
 ## Deploy the online game with Render
 
-The included `render.yaml` deploys the complete game and its WebSocket server as one Render web service. Publish this project to a Git provider such as GitHub, create a Render Blueprint from that repository, and apply the `goal-drift-multiplayer` service. Render will run `npm ci`, start the app with `npm start`, and check `/health`. Use the HTTPS URL Render assigns to the service for playing and sharing room invites. The Vercel frontend can also use this Render WebSocket backend after redeploying this version of `index.html`.
+The included `render.yaml` deploys the complete game and its WebSocket server as one Render web service. Publish this project to a Git provider such as GitHub, create a Render Blueprint from that repository, and apply the `goal-drift-multiplayer` service. Render will run `npm ci`, start the app with `npm start`, and check `/health`. Use the HTTPS URL Render assigns to the service for playing and sharing room invites. The Vercel frontend can also use this Render WebSocket backend after redeploying the current game files.
 
 Keep this service to one instance: room codes and matchmaking queues are held in memory and are not shared across instances. On Render's free plan, the service may spin down after inactivity, so the first connection after a quiet period can take a little longer.
 

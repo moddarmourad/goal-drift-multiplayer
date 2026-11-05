@@ -53,5 +53,246 @@ const SKIN_CATALOG = [
   { id: 'prism-breaker', name: 'Prism Breaker', paint: '#803ce4', accent: '#5af2b8', price: 3, pattern: 'racing' },
 ];
 
+const COUNTRY_LIST = `
+AF|Afghanistan
+AL|Albania
+DZ|Algeria
+AD|Andorra
+AO|Angola
+AG|Antigua and Barbuda
+AR|Argentina
+AM|Armenia
+AU|Australia
+AT|Austria
+AZ|Azerbaijan
+BS|Bahamas
+BH|Bahrain
+BD|Bangladesh
+BB|Barbados
+BY|Belarus
+BE|Belgium
+BZ|Belize
+BJ|Benin
+BT|Bhutan
+BO|Bolivia
+BA|Bosnia and Herzegovina
+BW|Botswana
+BR|Brazil
+BN|Brunei
+BG|Bulgaria
+BF|Burkina Faso
+BI|Burundi
+CV|Cabo Verde
+KH|Cambodia
+CM|Cameroon
+CA|Canada
+CF|Central African Republic
+TD|Chad
+CL|Chile
+CN|China
+CO|Colombia
+KM|Comoros
+CG|Congo
+CR|Costa Rica
+CI|Côte d’Ivoire
+HR|Croatia
+CU|Cuba
+CY|Cyprus
+CZ|Czechia
+KP|North Korea
+CD|Democratic Republic of the Congo
+DK|Denmark
+DJ|Djibouti
+DM|Dominica
+DO|Dominican Republic
+EC|Ecuador
+EG|Egypt
+SV|El Salvador
+GQ|Equatorial Guinea
+ER|Eritrea
+EE|Estonia
+SZ|Eswatini
+ET|Ethiopia
+FJ|Fiji
+FI|Finland
+FR|France
+GA|Gabon
+GM|Gambia
+GE|Georgia
+DE|Germany
+GH|Ghana
+GR|Greece
+GD|Grenada
+GT|Guatemala
+GN|Guinea
+GW|Guinea-Bissau
+GY|Guyana
+HT|Haiti
+HN|Honduras
+HU|Hungary
+IS|Iceland
+IN|India
+ID|Indonesia
+IR|Iran
+IQ|Iraq
+IE|Ireland
+IL|Israel
+IT|Italy
+JM|Jamaica
+JP|Japan
+JO|Jordan
+KZ|Kazakhstan
+KE|Kenya
+KI|Kiribati
+KW|Kuwait
+KG|Kyrgyzstan
+LA|Laos
+LV|Latvia
+LB|Lebanon
+LS|Lesotho
+LR|Liberia
+LY|Libya
+LI|Liechtenstein
+LT|Lithuania
+LU|Luxembourg
+MG|Madagascar
+MW|Malawi
+MY|Malaysia
+MV|Maldives
+ML|Mali
+MT|Malta
+MH|Marshall Islands
+MR|Mauritania
+MU|Mauritius
+MX|Mexico
+FM|Micronesia
+MC|Monaco
+MN|Mongolia
+ME|Montenegro
+MA|Morocco
+MZ|Mozambique
+MM|Myanmar
+NA|Namibia
+NR|Nauru
+NP|Nepal
+NL|Netherlands
+NZ|New Zealand
+NI|Nicaragua
+NE|Niger
+NG|Nigeria
+MK|North Macedonia
+NO|Norway
+OM|Oman
+PK|Pakistan
+PW|Palau
+PS|Palestine
+PA|Panama
+PG|Papua New Guinea
+PY|Paraguay
+PE|Peru
+PH|Philippines
+PL|Poland
+PT|Portugal
+QA|Qatar
+KR|South Korea
+MD|Moldova
+RO|Romania
+RU|Russia
+RW|Rwanda
+KN|Saint Kitts and Nevis
+LC|Saint Lucia
+VC|Saint Vincent and the Grenadines
+WS|Samoa
+SM|San Marino
+ST|São Tomé and Príncipe
+SA|Saudi Arabia
+SN|Senegal
+RS|Serbia
+SC|Seychelles
+SL|Sierra Leone
+SG|Singapore
+SK|Slovakia
+SI|Slovenia
+SB|Solomon Islands
+SO|Somalia
+ZA|South Africa
+SS|South Sudan
+ES|Spain
+LK|Sri Lanka
+SD|Sudan
+SR|Suriname
+SE|Sweden
+CH|Switzerland
+SY|Syria
+TJ|Tajikistan
+TZ|Tanzania
+TH|Thailand
+TL|Timor-Leste
+TG|Togo
+TO|Tonga
+TT|Trinidad and Tobago
+TN|Tunisia
+TR|Türkiye
+TM|Turkmenistan
+TV|Tuvalu
+UG|Uganda
+UA|Ukraine
+AE|United Arab Emirates
+GB|United Kingdom
+US|United States
+UY|Uruguay
+UZ|Uzbekistan
+VU|Vanuatu
+VA|Vatican City
+VE|Venezuela
+VN|Vietnam
+YE|Yemen
+ZM|Zambia
+ZW|Zimbabwe`.trim().split('\n').map((row) => {
+  const [code, name] = row.split('|');
+  return { code, name };
+});
+
+const FLAG_PALETTES = [
+  ['#e63946', '#ffffff', '#111827'], ['#168447', '#ffffff', '#dc2626'], ['#1557a0', '#ffffff', '#e23b45'],
+  ['#f2c230', '#1768a6', '#d92332'], ['#111827', '#f4f4f4', '#d32332'], ['#e85b33', '#f7d34a', '#218c66'],
+  ['#e94750', '#ffffff', '#2865b0'], ['#f2b632', '#ffffff', '#148b54'], ['#1659a7', '#f0d64b', '#e33b43'],
+  ['#122d65', '#ffffff', '#c83442'], ['#178b55', '#ffffff', '#e63e4b'], ['#5b2b82', '#f6d54a', '#111827'],
+];
+const COUNTRY_FLAG_PALETTES = {
+  AE: ['#00732f', '#ffffff', '#000000'], AR: ['#74acdf', '#ffffff', '#f6c445'], AU: ['#071c59', '#ffffff', '#dc3545'],
+  BR: ['#159447', '#f6d331', '#2452a4'], CA: ['#d62839', '#ffffff', '#d62839'], CN: ['#de2910', '#ffde00', '#de2910'],
+  DE: ['#111111', '#dd0000', '#ffce00'], EG: ['#ce2028', '#ffffff', '#111111'], ES: ['#aa151b', '#f1bf00', '#aa151b'],
+  FR: ['#173d8f', '#ffffff', '#ed2939'], GB: ['#183477', '#ffffff', '#c8102e'], IN: ['#ff9933', '#ffffff', '#138808'],
+  ID: ['#ce1126', '#ffffff', '#ce1126'], IT: ['#009246', '#ffffff', '#ce2b37'], JP: ['#ffffff', '#bc002d', '#ffffff'],
+  KR: ['#ffffff', '#cd2e3a', '#0047a0'], MX: ['#006847', '#ffffff', '#ce1126'], NL: ['#ae1c28', '#ffffff', '#21468b'],
+  NZ: ['#071c59', '#ffffff', '#cc142b'], PK: ['#01411c', '#ffffff', '#01411c'], SA: ['#006c35', '#ffffff', '#006c35'],
+  TR: ['#e30a17', '#ffffff', '#e30a17'], UA: ['#0057b7', '#ffd700', '#0057b7'], US: ['#b22234', '#ffffff', '#3c3b6e'],
+  ZA: ['#007749', '#ffb81c', '#de3831'],
+};
+function flagEmoji(code) {
+  return String.fromCodePoint(...code.split('').map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65));
+}
+function countryPalette(country, index) {
+  if (COUNTRY_FLAG_PALETTES[country.code]) return COUNTRY_FLAG_PALETTES[country.code];
+  const hash = country.code.charCodeAt(0) * 31 + country.code.charCodeAt(1) * 17 + index;
+  return FLAG_PALETTES[hash % FLAG_PALETTES.length];
+}
+const countrySkins = COUNTRY_LIST.map((country, index) => {
+  const colors = countryPalette(country, index);
+  return {
+    id: `flag-${country.code.toLowerCase()}`,
+    name: `${country.name} Flag`,
+    flag: flagEmoji(country.code),
+    countryCode: country.code,
+    paint: colors[0],
+    accent: colors[1],
+    flagColors: colors,
+    price: 8,
+    pattern: ['racing', 'twin', 'rally', 'side'][index % 4],
+  };
+});
+SKIN_CATALOG.push(...countrySkins);
+
 if (typeof module !== 'undefined') module.exports = SKIN_CATALOG;
 if (typeof window !== 'undefined') window.SKIN_CATALOG = SKIN_CATALOG;
