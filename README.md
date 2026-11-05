@@ -16,6 +16,12 @@ Install Node.js 18 or newer, install the project dependencies, then start the se
 
 The host relays room inputs and game snapshots through the Node.js server. Public matchmaking pairs players who are searching at the same time. A public deployment must support persistent WebSocket connections and HTTPS/WSS. `file://` previews and static-only hosting cannot provide online rooms. Latency and mobile network quality affect online play.
 
+## Ziina skin shop
+
+The garage includes 50 cosmetic skins priced at AED 2 or AED 3. Ziina requires a minimum payment of AED 2. Checkout is created and verified by the Node.js server; never put the Ziina access token in browser code. To activate payments, create a Ziina custom-integration access token with payment-intent permissions, then add `ZIINA_ACCESS_TOKEN` and a long random `SKIN_TOKEN_SECRET` to the Render web service's environment. Set `ZIINA_TEST_MODE=true` only while testing with Ziina's test flow, then remove/disable it for live payments. Redeploy after setting environment variables.
+
+After a completed payment, the server verifies the payment intent, exact AED amount, and skin/order reference with Ziina before issuing a signed unlock ticket. Browser tickets are stored locally on that device; this game currently has no player accounts or cross-device purchase restore. Ziina merchant activation, fees, tax treatment, refund rules, and legal disclosures must be configured/confirmed with Ziina by the merchant before accepting live payments.
+
 ## Deploy the online game with Render
 
 The included `render.yaml` deploys the complete game and its WebSocket server as one Render web service. Publish this project to a Git provider such as GitHub, create a Render Blueprint from that repository, and apply the `goal-drift-multiplayer` service. Render will run `npm ci`, start the app with `npm start`, and check `/health`. Use the HTTPS URL Render assigns to the service for playing and sharing room invites. The Vercel frontend can also use this Render WebSocket backend after redeploying this version of `index.html`.

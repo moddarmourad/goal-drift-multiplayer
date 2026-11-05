@@ -5,10 +5,31 @@ const http = require('node:http');
 const path = require('node:path');
 const express = require('express');
 const { WebSocketServer, WebSocket } = require('ws');
+const skinCatalog = require('./skins');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/multiplayer', maxPayload: 16 * 1024 });
+const skinById = new Map(skinCatalog.map((skin) => [skin.id, skin]));
+const allowedOrigins = new Set([
+  'https://moddar-game.vercel.app',
+  'https://goal-drift-multiplayer.onrender.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]);
+app.use(express.json({ limit: '16kb' }));
+app.use('/api', (req, res, next) => {
+  const origin = req.get('origin');
+  if (origin && !allowedOrigins.has(origin)) return res.status(403).json({ error: 'This game origin is not allowed.' });
+  if (origin) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 const rooms = new Map();
 const quickQueue = [];
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -16,10 +37,89 @@ const seats = [[0, 0], [1, 0], [0, 1], [1, 1]];
 const stadiumIds = new Set(['neon', 'desert', 'ice', 'forest', 'lunar']);
 
 app.get('/health', (_req, res) => res.json({ ok: true, rooms: rooms.size, queued: quickQueue.length }));
+app.get('/api/skins', (_req, res) => res.json(skinCatalog.map(({ id, name, paint, accent, price, pattern }) => ({ id, name, paint, accent, price, pattern }))));
+app.post('/api/skins/checkout', async (req, res) => {
+  const skin = skinById.get(String(req.body && req.body.skinId || ''));
+  const accessToken = process.env.ZIINA_ACCESS_TOKEN;
+  if (!accessToken || !process.env.SKIN_TOKEN_SECRET) {
+    return res.status(503).json({ error: 'The shop is not configured yet. Add the Ziina and skin-signing secrets to the game server.' });
+  }
+  if (!skin) return res.status(400).json({ error: 'That skin is not available.' });
+
+  const origin = allowedOrigins.has(req.get('origin')) ? req.get('origin') : 'https://moddar-game.vercel.app';
+  const orderRef = crypto.randomUUID();
+  const message = `Goal Drift skin ${skin.id} · ${orderRef}`;
+  const successUrl = `${origin}/?payment=success&skin_id=${encodeURIComponent(skin.id)}&order_ref=${encodeURIComponent(orderRef)}&payment_intent_id={PAYMENT_INTENT_ID}`;
+  try {
+    const response = await fetch('https://api-v2.ziina.com/api/payment_intent', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: skin.price * 100,
+        currency_code: 'AED',
+        message,
+        success_url: successUrl,
+        cancel_url: `${origin}/?payment=cancelled`,
+        failure_url: `${origin}/?payment=failed`,
+        ...(process.env.ZIINA_TEST_MODE === 'true' ? { test: true } : {}),
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const intent = await response.json().catch(() => ({}));
+    if (!response.ok || !intent.redirect_url) {
+      console.error('Ziina checkout creation failed:', response.status, intent.message || intent.error || 'No checkout URL returned');
+      return res.status(502).json({ error: 'Ziina could not start checkout. Check the merchant token and try again.' });
+    }
+    res.json({ redirectUrl: intent.redirect_url });
+  } catch (error) {
+    console.error('Ziina checkout request failed:', error.name || 'request error');
+    res.status(502).json({ error: 'Could not reach Ziina. Please try again.' });
+  }
+});
+app.post('/api/skins/claim', async (req, res) => {
+  const skin = skinById.get(String(req.body && req.body.skinId || ''));
+  const paymentIntentId = String(req.body && req.body.paymentIntentId || '');
+  const orderRef = String(req.body && req.body.orderRef || '');
+  const accessToken = process.env.ZIINA_ACCESS_TOKEN;
+  if (!accessToken || !process.env.SKIN_TOKEN_SECRET) return res.status(503).json({ error: 'The shop is not configured yet.' });
+  if (!skin || !/^[0-9a-f-]{36}$/i.test(paymentIntentId) || !/^[0-9a-f-]{36}$/i.test(orderRef)) {
+    return res.status(400).json({ error: 'Payment receipt is invalid.' });
+  }
+  try {
+    const response = await fetch(`https://api-v2.ziina.com/api/payment_intent/${encodeURIComponent(paymentIntentId)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15000),
+    });
+    const intent = await response.json().catch(() => ({}));
+    const expectedMessage = `Goal Drift skin ${skin.id} · ${orderRef}`;
+    if (!response.ok || intent.id !== paymentIntentId || intent.status !== 'completed'
+      || intent.amount !== skin.price * 100 || intent.currency_code !== 'AED' || intent.message !== expectedMessage) {
+      return res.status(402).json({ error: 'Ziina has not confirmed this skin payment yet.' });
+    }
+    const payload = Buffer.from(JSON.stringify({ skinId: skin.id, paymentIntentId, amount: skin.price * 100, currency: 'AED' })).toString('base64url');
+    const signature = crypto.createHmac('sha256', process.env.SKIN_TOKEN_SECRET).update(payload).digest('base64url');
+    res.json({ ticket: `${payload}.${signature}`, skinId: skin.id });
+  } catch (error) {
+    console.error('Ziina payment verification failed:', error.name || 'request error');
+    res.status(502).json({ error: 'Could not verify the payment with Ziina yet. Please retry.' });
+  }
+});
+app.post('/api/skins/verify', (req, res) => {
+  const secret = process.env.SKIN_TOKEN_SECRET;
+  if (!secret) return res.status(503).json({ error: 'The shop is not configured yet.' });
+  const tickets = Array.isArray(req.body && req.body.tickets) ? req.body.tickets.slice(0, 50) : [];
+  const owned = [];
+  for (const ticket of tickets) {
+    const value = verifySkinTicket(ticket, secret);
+    if (value) owned.push(value.skinId);
+  }
+  res.json({ owned: [...new Set(owned)] });
+});
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/index.html', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/manifest.webmanifest', (_req, res) => res.sendFile(path.join(__dirname, 'manifest.webmanifest')));
 app.get('/icon.svg', (_req, res) => res.sendFile(path.join(__dirname, 'icon.svg')));
+app.get('/skins.js', (_req, res) => res.sendFile(path.join(__dirname, 'skins.js')));
 app.get('/service-worker.js', (_req, res) => res.sendFile(path.join(__dirname, 'service-worker.js')));
 app.use('/icons', express.static(path.join(__dirname, 'icons')));
 app.use('/screenshots', express.static(path.join(__dirname, 'screenshots')));
@@ -35,14 +135,38 @@ function code() {
   } while (rooms.has(value));
   return value;
 }
-function cleanProfile(profile) {
+function verifySkinTicket(ticket, secret = process.env.SKIN_TOKEN_SECRET) {
+  if (typeof ticket !== 'string' || !secret) return null;
+  const [payload, signature, extra] = ticket.split('.');
+  if (!payload || !signature || extra) return null;
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest();
+  let actual;
+  try { actual = Buffer.from(signature, 'base64url'); } catch { return null; }
+  if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
+  try {
+    const value = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    const skin = skinById.get(value.skinId);
+    return skin && value.amount === skin.price * 100 && value.currency === 'AED' && typeof value.paymentIntentId === 'string'
+      ? value : null;
+  } catch { return null; }
+}
+function cleanProfile(profile, ownedSkins = new Set()) {
   const p = profile || {};
+  const skin = skinById.get(String(p.skin || ''));
+  if (skin && ownedSkins.has(skin.id)) {
+    return { name: String(p.name || 'Driver').replace(/[<>]/g, '').trim().slice(0, 16) || 'Driver', paint: skin.paint, accent: skin.accent, skin: skin.id };
+  }
   return {
     name: String(p.name || 'Driver').replace(/[<>]/g, '').trim().slice(0, 16) || 'Driver',
     paint: /^#[0-9a-f]{6}$/i.test(p.paint) ? p.paint : '#ffd23f',
     accent: /^#[0-9a-f]{6}$/i.test(p.accent) ? p.accent : '#9b6cff',
     skin: ['racing', 'twin', 'solid'].includes(p.skin) ? p.skin : 'solid',
   };
+}
+function updateSocketProfile(ws, profile) {
+  const tickets = profile && profile.skinTickets && typeof profile.skinTickets === 'object' ? Object.values(profile.skinTickets) : [];
+  ws.ownedSkins = new Set(tickets.map((ticket) => verifySkinTicket(ticket)).filter(Boolean).map((ticket) => ticket.skinId));
+  ws.profile = cleanProfile(profile, ws.ownedSkins);
 }
 function cleanGameSettings(value) {
   const settings = value || {};
@@ -162,6 +286,7 @@ wss.on('connection', (ws) => {
   ws.roomCode = '';
   ws.role = '';
   ws.profile = cleanProfile(null);
+  ws.ownedSkins = new Set();
   ws.gameSettings = cleanGameSettings(null);
   ws.rateWindow = Date.now();
   ws.rateCount = 0;
@@ -174,7 +299,7 @@ wss.on('connection', (ws) => {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
     if (!msg || typeof msg.type !== 'string') return;
-    if (msg.profile) ws.profile = cleanProfile(msg.profile);
+    if (msg.profile) updateSocketProfile(ws, msg.profile);
     if (msg.settings) ws.gameSettings = cleanGameSettings(msg.settings);
 
     if (msg.type === 'create') {

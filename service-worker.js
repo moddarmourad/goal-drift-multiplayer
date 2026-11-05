@@ -1,7 +1,7 @@
 'use strict';
 
-const CACHE = 'goal-drift-shell-v3';
-const SHELL = ['./', './manifest.webmanifest', './icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'goal-drift-shell-v4';
+const SHELL = ['./', './manifest.webmanifest', './icon.svg', './skins.js', './icons/icon-192.png', './icons/icon-512.png'];
 const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 
 self.addEventListener('install', (event) => {

@@ -93,6 +93,16 @@ kbd{font-family:var(--font-ui);font-weight:700;font-size:13px;padding:1px 6px;bo
 .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .profile-grid input[type="text"],.profile-grid select,.room-input{width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raise);color:var(--chalk);font:inherit}
 .profile-grid input[type="color"]{width:100%;height:44px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raise)}
+.skin-shop{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:340px;overflow:auto;padding:2px}
+.skin-card{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--panel-raise)}
+.skin-swatch{width:42px;height:42px;border-radius:8px;border:1px solid #ffffff44;box-shadow:inset 0 0 12px #0005}
+.skin-card-copy{min-width:0}.skin-card-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800}
+.skin-card-price{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.skin-card button{grid-column:1/-1;width:100%;min-height:34px;padding:5px;border:1px solid var(--line);border-radius:7px;background:var(--ink);color:var(--chalk);font:700 12px var(--font-ui);cursor:pointer}
+.skin-card button.primary{background:var(--volt);border-color:var(--volt);color:var(--volt-ink)}
+.skin-card button:disabled{opacity:.55;cursor:not-allowed}
+.shop-search{width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raise);color:var(--chalk);font:inherit}
+.shop-status{min-height:1.2em;margin:0;color:var(--muted);font-size:13px}
 .online-box{display:flex;flex-direction:column;gap:9px;padding-top:12px;border-top:1px solid var(--line)}
 .online-box>.btn{flex:0 0 auto;min-height:46px}
 .online-status{margin:0;color:var(--muted);font-size:14px;min-height:1.3em}
@@ -290,11 +300,14 @@ tr.me td{color:var(--charge)}
       <summary>Garage · car paint &amp; skin</summary>
       <div class="profile-grid" style="margin-top:12px">
         <label class="field"><span class="label">Player name</span><input id="playerName" type="text" maxlength="16" autocomplete="nickname" value="Driver"></label>
-        <label class="field"><span class="label">Skin pattern</span><select id="carSkin"><option value="racing">Racing stripe</option><option value="twin">Twin stripes</option><option value="solid">Clean / solid</option></select></label>
+         <label class="field"><span class="label">Equipped style</span><select id="carSkin"><option value="racing">Free · Racing stripe</option><option value="twin">Free · Twin stripes</option><option value="solid">Free · Clean / solid</option><option value="purchased">Purchased skin · see collection</option></select></label>
         <label class="field"><span class="label">Body paint</span><input id="carPaint" type="color" value="#ffd23f"></label>
         <label class="field"><span class="label">Accent color</span><input id="carAccent" type="color" value="#9b6cff"></label>
       </div>
-      <p class="fine">Your garage design is saved on this device and shared with your room.</p>
+      <p class="fine">50 themed skins · AED 2 or AED 3 each. Payments open Ziina checkout. Purchased skins are saved in this browser.</p>
+      <label class="field" for="skinSearch"><span class="label">Find a skin</span><input class="shop-search" id="skinSearch" type="search" placeholder="Search 50 skins"></label>
+      <p class="shop-status" id="shopStatus" aria-live="polite">Free racing, twin-stripe, and solid styles are always available.</p>
+      <div class="skin-shop" id="skinShop" aria-label="Paid car skins"></div>
     </details>
     <div class="online-box" aria-labelledby="onlineLabel">
       <span class="label" id="onlineLabel">Online play · invite up to 3 friends or find a public match</span>
@@ -374,6 +387,7 @@ tr.me td{color:var(--charge)}
 <div id="loading" class="screen centered"><p class="loading" id="loadingText">Building the arena…</p></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="./skins.js"></script>
 <script>
 (function () {
 'use strict';
@@ -456,7 +470,7 @@ try {
 } catch (e) {}
 if (!STADIUMS[settings.stadium]) settings.stadium = 'neon';
 function saveSettings() { try { localStorage.setItem('goaldrift-settings', JSON.stringify(settings)); } catch (e) {} }
-const profile = { name: 'Driver', paint: '#ffd23f', accent: '#9b6cff', skin: 'racing' };
+const profile = { name: 'Driver', paint: '#ffd23f', accent: '#9b6cff', skin: 'racing', ownedSkins: {} };
 try {
   const savedProfile = JSON.parse(localStorage.getItem('goaldrift-profile') || 'null');
   if (savedProfile && typeof savedProfile === 'object') Object.assign(profile, savedProfile);
@@ -464,8 +478,17 @@ try {
 profile.name = String(profile.name || 'Driver').trim().slice(0, 16) || 'Driver';
 if (!/^#[0-9a-f]{6}$/i.test(profile.paint)) profile.paint = '#ffd23f';
 if (!/^#[0-9a-f]{6}$/i.test(profile.accent)) profile.accent = '#9b6cff';
-if (!['racing', 'twin', 'solid'].includes(profile.skin)) profile.skin = 'racing';
+if (!['racing', 'twin', 'solid'].includes(profile.skin) && !(window.SKIN_CATALOG || []).some((skin) => skin.id === profile.skin)) profile.skin = 'racing';
+if (!profile.ownedSkins || typeof profile.ownedSkins !== 'object' || Array.isArray(profile.ownedSkins)) profile.ownedSkins = {};
 function saveProfile() { try { localStorage.setItem('goaldrift-profile', JSON.stringify(profile)); } catch (e) {} }
+const paidSkinIds = new Set();
+function skinDefinition(id) { return (window.SKIN_CATALOG || []).find((skin) => skin.id === id) || null; }
+function shopApiBase() {
+  return ['localhost', '127.0.0.1', 'goal-drift-multiplayer.onrender.com'].includes(location.hostname)
+    ? location.origin : 'https://goal-drift-multiplayer.onrender.com';
+}
+function skinTickets() { return Object.fromEntries(Object.entries(profile.ownedSkins).filter(([id, ticket]) => paidSkinIds.has(id) && typeof ticket === 'string')); }
+function networkProfile() { return { name: profile.name, paint: profile.paint, accent: profile.accent, skin: profile.skin, skinTickets: skinTickets() }; }
 const online = { socket: null, role: '', room: '', peerReady: false, started: false, localTeam: 0, localSlot: 0, players: [], remoteInputs: Object.create(null), inputTimer: 0, snapshotTimer: 0, queueing: false };
 function isOnlineMatch() { return !!online.room && online.started; }
 
@@ -1019,8 +1042,10 @@ function buildCarView(c) {
     add(G.skinStripe, trimMaterial, 0, 0.34, 0.05, false),
     add(G.skinTwin, trimMaterial, -0.35, 0.34, 0.05, false),
     add(G.skinTwin, trimMaterial, 0.35, 0.34, 0.05, false),
+    add(G.skinTwin, trimMaterial, -0.82, 0.32, 0.05, false),
+    add(G.skinTwin, trimMaterial, 0.82, 0.32, 0.05, false),
   ];
-  patternMeshes.forEach((m, i) => { m.visible = style.skin === 'racing' ? i === 0 : style.skin === 'twin' ? i > 0 : false; });
+  setSkinPattern(patternMeshes, skinDefinition(style.skin)?.pattern || style.skin);
   const flames = [];
   for (const sx of [-1, 1]) {
     add(G.pod, M.dark, sx * 1.16, -0.2, -0.15, true);
@@ -1086,10 +1111,11 @@ class Car {
 }
 function applyCarStyle(c, style) {
   if (!c || !style) return;
+  const skinDef = skinDefinition(style.skin);
   const next = {
-    paint: /^#[0-9a-f]{6}$/i.test(style.paint) ? style.paint : '#' + TEAMS[c.team].color.getHexString(),
-    accent: /^#[0-9a-f]{6}$/i.test(style.accent) ? style.accent : '#' + TEAMS[c.team].color.getHexString(),
-    skin: ['racing', 'twin', 'solid'].includes(style.skin) ? style.skin : 'solid',
+    paint: skinDef ? skinDef.paint : (/^#[0-9a-f]{6}$/i.test(style.paint) ? style.paint : '#' + TEAMS[c.team].color.getHexString()),
+    accent: skinDef ? skinDef.accent : (/^#[0-9a-f]{6}$/i.test(style.accent) ? style.accent : '#' + TEAMS[c.team].color.getHexString()),
+    skin: skinDef ? skinDef.id : (['racing', 'twin', 'solid'].includes(style.skin) ? style.skin : 'solid'),
   };
   c.style = next;
   if (!c.view) return;
@@ -1099,7 +1125,11 @@ function applyCarStyle(c, style) {
   c.view.rimMaterial.emissive.set(next.accent).multiplyScalar(0.35);
   c.view.flameMaterial.color.set(next.accent).lerp(new THREE.Color(0xffffff), 0.45);
   c.view.glowMaterial.color.set(next.accent);
-  c.view.patternMeshes.forEach((m, i) => { m.visible = next.skin === 'racing' ? i === 0 : next.skin === 'twin' ? i > 0 : false; });
+  setSkinPattern(c.view.patternMeshes, skinDefinition(next.skin)?.pattern || next.skin);
+}
+function setSkinPattern(meshes, pattern) {
+  const visible = pattern === 'racing' ? [0] : pattern === 'twin' ? [1, 2] : pattern === 'rally' ? [0, 1, 2] : pattern === 'side' ? [3, 4] : [];
+  meshes.forEach((mesh, index) => { mesh.visible = visible.includes(index); });
 }
 const cars = [];
 let player = null;
@@ -2122,7 +2152,7 @@ function connectRoom(action, code) {
   online.socket = socket;
   socket.addEventListener('open', () => {
     online.connecting = false;
-    sendNetwork({ type: action, code: code || '', profile, settings: { stadium: settings.stadium, minutes: settings.minutes } });
+    sendNetwork({ type: action, code: code || '', profile: networkProfile(), settings: { stadium: settings.stadium, minutes: settings.minutes } });
   });
   socket.addEventListener('message', (event) => {
     let msg;
@@ -2218,7 +2248,7 @@ function startMatch(fromNetwork) {
   const onlineTeamSize = online.players.length > 2 ? 2 : 1;
   setupTeams(isOnlineMatch() ? onlineTeamSize : settings.teamSize, settings.diff, true);
   if (isOnlineMatch()) {
-    sendNetwork({ type: 'profile', profile });
+    sendNetwork({ type: 'profile', profile: networkProfile() });
   }
   game.score = [0, 0]; game.clock = settings.minutes * 60; game.overtime = false; game.endAfterGoal = false; game.matchT = 0;
   game.paused = false;
@@ -2615,9 +2645,146 @@ function syncSettingsUI() {
   $('playerName').value = profile.name;
   $('carPaint').value = profile.paint;
   $('carAccent').value = profile.accent;
-  $('carSkin').value = profile.skin;
+    const selectedSkin = skinDefinition(profile.skin);
+    $('carSkin').value = selectedSkin ? 'purchased' : profile.skin;
+    $('carPaint').value = selectedSkin ? selectedSkin.paint : profile.paint;
+    $('carAccent').value = selectedSkin ? selectedSkin.accent : profile.accent;
+    $('carPaint').disabled = !!selectedSkin;
+    $('carAccent').disabled = !!selectedSkin;
   $('stadiumSelect').value = settings.stadium;
 }
+function skinOwned(id) { return ['racing', 'twin', 'solid'].includes(id) || paidSkinIds.has(id); }
+function setActiveSkin(skin) {
+  if (!skin || (!['racing', 'twin', 'solid'].includes(skin.id) && !skinOwned(skin.id))) return;
+  profile.skin = skin.id;
+  if (skin.id !== 'racing' && skin.id !== 'twin' && skin.id !== 'solid') {
+    profile.paint = skin.paint;
+    profile.accent = skin.accent;
+  }
+  saveProfile();
+  syncSettingsUI();
+  if (player) applyCarStyle(player, profile);
+  if (online.room) sendNetwork({ type: 'profile', profile: networkProfile() });
+  renderSkinShop($('skinSearch').value);
+}
+function renderSkinShop(search = '') {
+  const shop = $('skinShop');
+  const query = String(search).trim().toLowerCase();
+  shop.replaceChildren();
+  for (const skin of window.SKIN_CATALOG || []) {
+    if (query && !skin.name.toLowerCase().includes(query)) continue;
+    const owned = paidSkinIds.has(skin.id);
+    const equipped = profile.skin === skin.id;
+    const card = document.createElement('article');
+    card.className = 'skin-card';
+    const swatch = document.createElement('span');
+    swatch.className = 'skin-swatch';
+    swatch.setAttribute('aria-hidden', 'true');
+    swatch.style.background = `linear-gradient(135deg, ${skin.paint} 0 42%, ${skin.accent} 43% 58%, ${skin.paint} 59%)`;
+    const copy = document.createElement('div');
+    copy.className = 'skin-card-copy';
+    const name = document.createElement('span');
+    name.className = 'skin-card-name';
+    name.textContent = skin.name;
+    const price = document.createElement('span');
+    price.className = 'skin-card-price';
+    price.textContent = `AED ${skin.price}`;
+    copy.append(name, price);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.skinId = skin.id;
+    button.textContent = equipped ? 'Equipped' : owned ? 'Equip skin' : 'Buy with Ziina';
+    button.classList.toggle('primary', equipped || owned);
+    button.setAttribute('aria-label', `${equipped ? 'Equipped' : owned ? 'Equip' : 'Buy'} ${skin.name}${owned ? '' : ` for AED ${skin.price}`}`);
+    card.append(swatch, copy, button);
+    shop.append(card);
+  }
+}
+async function verifySavedSkins() {
+  const tickets = skinTickets();
+  if (!Object.keys(tickets).length) {
+    if (skinDefinition(profile.skin)) profile.skin = 'racing';
+    syncSettingsUI();
+    renderSkinShop($('skinSearch').value);
+    return;
+  }
+  try {
+    const response = await fetch(`${shopApiBase()}/api/skins/verify`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tickets: Object.values(tickets) }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Could not verify the saved purchases.');
+    paidSkinIds.clear();
+    for (const id of result.owned || []) paidSkinIds.add(id);
+    for (const id of Object.keys(profile.ownedSkins)) if (!paidSkinIds.has(id)) delete profile.ownedSkins[id];
+    if (skinDefinition(profile.skin) && !paidSkinIds.has(profile.skin)) profile.skin = 'racing';
+    saveProfile();
+    syncSettingsUI();
+    if (player) applyCarStyle(player, profile);
+    if (online.room) sendNetwork({ type: 'profile', profile: networkProfile() });
+    $('shopStatus').textContent = `${paidSkinIds.size} purchased skin${paidSkinIds.size === 1 ? '' : 's'} verified on this browser.`;
+  } catch (error) {
+    paidSkinIds.clear();
+    if (skinDefinition(profile.skin)) profile.skin = 'racing';
+    saveProfile();
+    syncSettingsUI();
+    $('shopStatus').textContent = error.message || 'Could not verify purchases. Check the connection and reload.';
+  }
+  renderSkinShop($('skinSearch').value);
+}
+async function completeSkinPaymentReturn() {
+  const params = new URLSearchParams(location.search);
+  const state = params.get('payment');
+  if (!state) return;
+  history.replaceState(null, '', location.pathname + location.hash);
+  if (state !== 'success') {
+    $('shopStatus').textContent = state === 'cancelled' ? 'Payment cancelled. No charge was made.' : 'Payment was not completed.';
+    return;
+  }
+  $('shopStatus').textContent = 'Checking your payment with Ziina…';
+  try {
+    const response = await fetch(`${shopApiBase()}/api/skins/claim`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skinId: params.get('skin_id'), orderRef: params.get('order_ref'), paymentIntentId: params.get('payment_intent_id') }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Payment is not confirmed yet.');
+    profile.ownedSkins[result.skinId] = result.ticket;
+    paidSkinIds.add(result.skinId);
+    saveProfile();
+    setActiveSkin(skinDefinition(result.skinId));
+    $('shopStatus').textContent = `${skinDefinition(result.skinId).name} unlocked. It is saved in this browser.`;
+  } catch (error) {
+    $('shopStatus').textContent = error.message || 'Could not verify payment. Retry by reloading this page.';
+  }
+}
+async function buySkin(skin) {
+  if (!skin) return;
+  $('shopStatus').textContent = `Opening Ziina checkout for ${skin.name}…`;
+  try {
+    const response = await fetch(`${shopApiBase()}/api/skins/checkout`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ skinId: skin.id }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Could not start checkout.');
+    const checkout = new URL(result.redirectUrl);
+    if (checkout.protocol !== 'https:') throw new Error('Ziina returned an invalid checkout link.');
+    location.assign(checkout.href);
+  } catch (error) {
+    $('shopStatus').textContent = error.message || 'Could not connect to Ziina. Please try again.';
+  }
+}
+$('skinShop').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-skin-id]');
+  if (!button) return;
+  const skin = skinDefinition(button.dataset.skinId);
+  if (paidSkinIds.has(button.dataset.skinId)) setActiveSkin(skin);
+  else buySkin(skin);
+});
+$('skinSearch').addEventListener('input', (event) => renderSkinShop(event.target.value));
+renderSkinShop();
+verifySavedSkins();
+completeSkinPaymentReturn();
 document.querySelectorAll('.seg').forEach((seg) => {
   seg.addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -2637,17 +2804,22 @@ $('playerName').addEventListener('input', (e) => {
   profile.name = String(e.target.value || 'Driver').replace(/[<>]/g, '').trim().slice(0, 16) || 'Driver';
   saveProfile();
   if (player) { player.name = profile.name; if (player.view.label) { scene.remove(player.view.label); player.view.label = makeLabel(profile.name, player.team); scene.add(player.view.label); } }
-  if (online.room) sendNetwork({ type: 'profile', profile });
+  if (online.room) sendNetwork({ type: 'profile', profile: networkProfile() });
 });
 function saveGarageChange() {
-  profile.paint = $('carPaint').value; profile.accent = $('carAccent').value; profile.skin = $('carSkin').value;
+  if ($('carSkin').value === 'purchased') { syncSettingsUI(); return; }
+  profile.paint = $('carPaint').value; profile.accent = $('carAccent').value;
   saveProfile();
   if (player) applyCarStyle(player, profile);
-  if (online.room) sendNetwork({ type: 'profile', profile });
+  if (online.room) sendNetwork({ type: 'profile', profile: networkProfile() });
 }
 $('carPaint').addEventListener('input', saveGarageChange);
 $('carAccent').addEventListener('input', saveGarageChange);
-$('carSkin').addEventListener('change', saveGarageChange);
+$('carSkin').addEventListener('change', () => {
+  if ($('carSkin').value === 'purchased') { syncSettingsUI(); return; }
+  profile.skin = $('carSkin').value;
+  saveGarageChange();
+});
 $('playBtn').addEventListener('click', () => startMatch(false));
 $('createRoomBtn').addEventListener('click', () => connectRoom('create'));
 $('quickPlayBtn').addEventListener('click', () => connectRoom('quickPlay'));
