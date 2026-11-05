@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const http = require('node:http');
 const path = require('node:path');
-const express = require('express');
+  const message = `GD-${skin.id}-${orderRef.replace(/-/g, '').slice(0, 8)}`;
 const { WebSocketServer, WebSocket } = require('ws');
 const skinCatalog = require('./skins');
 
@@ -91,7 +91,7 @@ app.post('/api/skins/claim', async (req, res) => {
       signal: AbortSignal.timeout(15000),
     });
     const intent = await response.json().catch(() => ({}));
-    const expectedMessage = `Goal Drift skin ${skin.id} · ${orderRef}`;
+    const expectedMessage = `GD-${skin.id}-${orderRef.replace(/-/g, '').slice(0, 8)}`;
     if (!response.ok || intent.id !== paymentIntentId || intent.status !== 'completed'
       || intent.amount !== skin.price * 100 || intent.currency_code !== 'AED' || intent.message !== expectedMessage) {
       return res.status(402).json({ error: 'Ziina has not confirmed this skin payment yet.' });
