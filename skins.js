@@ -264,7 +264,7 @@ const countrySkins = COUNTRY_LIST.map((country) => {
     countryCode: country.code,
     paint: '#263247',
     accent: '#f8fafc',
-    price: 8,
+    price: 10,
     pattern: 'solid',
   };
 });
