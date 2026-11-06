@@ -37,7 +37,7 @@ const seats = [[0, 0], [1, 0], [0, 1], [1, 1]];
 const stadiumIds = new Set(['neon', 'desert', 'ice', 'forest', 'lunar', 'tokyo', 'paris', 'dubai']);
 
 app.get('/health', (_req, res) => res.json({ ok: true, rooms: rooms.size, queued: quickQueue.length }));
-app.get('/api/skins', (_req, res) => res.json(skinCatalog.map(({ id, name, paint, accent, price, pattern, flag, countryCode, flagColors }) => ({ id, name, paint, accent, price, pattern, ...(flag ? { flag, countryCode, flagColors } : {}) }))));
+app.get('/api/skins', (_req, res) => res.json(skinCatalog.map(({ id, name, paint, accent, price, pattern, flag, countryCode }) => ({ id, name, paint, accent, price, pattern, ...(flag ? { flag, countryCode } : {}) }))));
 app.post('/api/skins/checkout', async (req, res) => {
   const skin = skinById.get(String(req.body && req.body.skinId || ''));
   const accessToken = process.env.ZIINA_ACCESS_TOKEN;
