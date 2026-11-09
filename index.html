@@ -101,6 +101,9 @@ kbd{font-family:var(--font-ui);font-weight:700;font-size:13px;padding:1px 6px;bo
 .skin-card button{grid-column:1/-1;width:100%;min-height:34px;padding:5px;border:1px solid var(--line);border-radius:7px;background:var(--ink);color:var(--chalk);font:700 12px var(--font-ui);cursor:pointer}
 .skin-card button.primary{background:var(--volt);border-color:var(--volt);color:var(--volt-ink)}
 .skin-card button:disabled{opacity:.55;cursor:not-allowed}
+.shop-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.shop-filter{min-height:38px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raise);color:var(--muted);font:700 14px var(--font-ui);cursor:pointer}
+.shop-filter[aria-pressed="true"]{background:var(--volt);border-color:var(--volt);color:var(--volt-ink)}
 .shop-search{width:100%;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raise);color:var(--chalk);font:inherit}
 .shop-status{min-height:1.2em;margin:0;color:var(--muted);font-size:13px}
 .online-box{display:flex;flex-direction:column;gap:9px;padding-top:12px;border-top:1px solid var(--line)}
@@ -326,6 +329,11 @@ tr.me td{color:var(--charge)}
         <label class="field"><span class="label">Accent color</span><input id="carAccent" type="color" value="#9b6cff"></label>
       </div>
       <p class="fine">195 country flag liveries · AED 10 each, plus 50 original skins from AED 3. Checkout opens Ziina. Purchases are saved in this browser.</p>
+      <div class="shop-filters" role="group" aria-label="Skin categories">
+        <button type="button" class="shop-filter" data-skin-filter="all" aria-pressed="true">All skins</button>
+        <button type="button" class="shop-filter" data-skin-filter="original" aria-pressed="false">Original</button>
+        <button type="button" class="shop-filter" data-skin-filter="flags" aria-pressed="false">Flag skins</button>
+      </div>
       <label class="field" for="skinSearch"><span class="label">Find a skin</span><input class="shop-search" id="skinSearch" type="search" placeholder="Search 245 skins"></label>
       <p class="shop-status" id="shopStatus" aria-live="polite">Free racing, twin-stripe, and solid styles are always available.</p>
       <div class="skin-shop" id="skinShop" aria-label="Paid car skins"></div>
@@ -2831,11 +2839,17 @@ function setActiveSkin(skin) {
   if (online.room) sendNetwork({ type: 'profile', profile: networkProfile() });
   renderSkinShop($('skinSearch').value);
 }
+let activeSkinFilter = 'all';
 function renderSkinShop(search = '') {
   const shop = $('skinShop');
   const query = String(search).trim().toLowerCase();
+  document.querySelectorAll('[data-skin-filter]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.skinFilter === activeSkinFilter));
+  });
   shop.replaceChildren();
   for (const skin of window.SKIN_CATALOG || []) {
+    if (activeSkinFilter === 'flags' && !skin.countryCode) continue;
+    if (activeSkinFilter === 'original' && skin.countryCode) continue;
     if (query && !skin.name.toLowerCase().includes(query)) continue;
     const owned = paidSkinIds.has(skin.id);
     const equipped = profile.skin === skin.id;
@@ -2947,6 +2961,12 @@ $('skinShop').addEventListener('click', (event) => {
   else buySkin(skin);
 });
 $('skinSearch').addEventListener('input', (event) => renderSkinShop(event.target.value));
+document.querySelectorAll('[data-skin-filter]').forEach((button) => {
+  button.addEventListener('click', () => {
+    activeSkinFilter = button.dataset.skinFilter;
+    renderSkinShop($('skinSearch').value);
+  });
+});
 renderSkinShop();
 verifySavedSkins();
 completeSkinPaymentReturn();
